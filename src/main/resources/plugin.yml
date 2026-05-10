@@ -1,0 +1,28 @@
+name: ${project.name}
+description: ${project.description}
+author: ${plugin.author}
+main: ${plugin.main-class}
+license: Apache License 2.0
+version: ${project.version}
+api-version: 1.13
+depend: [ PlaceholderAPI ]
+commands:
+  githubapi:
+    description: Main plugin command
+    usage: /<command> [link | show]
+    permission: githubapi.command
+    default: op
+permissions:
+  githubapi.command:
+    description: Access to plugin command
+    default: true
+  githubapi.command.show:
+    description: Access to show command
+    default: true
+    children:
+      githubapi.command: true
+  githubapi.command.link:
+    description: Access to link command
+    default: op
+    children:
+      githubapi.command: true

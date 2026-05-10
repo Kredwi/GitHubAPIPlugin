@@ -1,0 +1,42 @@
+# SteamAPIPlugin
+# for update config - reload or restart server
+
+version: 1 # config version
+debug: false # debug logging
+
+github:
+  http:
+    timeout: 3000 # HTTP connection & read timeout in milliseconds.
+  token:
+    # Set to true to use a GitHub personal access token.
+    enable: false
+    # Your token (create at https://github.com/settings/tokens).
+    # No scopes are required. Used to raise API rate limits.
+    value:
+
+database:
+  name: GithubAPIPlugin # MySQL database name
+  host: 127.0.0.1 # Database host (use an IP or hostname).
+  port: 3306 # MySQL port (default: 3306).
+  username: username # Database username.
+  password: # Database password. Leave empty if no password is set.
+
+papi:
+  message:
+    loading: "§eLoading current data...§r"
+
+messages:
+  command:
+    no-permissions: "§cYou don't have permission to use this command.§r"
+    no-args: "§cRequired arguments are missing. Please check the command syntax.§r"
+    subcommand:
+      not-found: "§cSubcommand not found. Use /help for available commands.§r"
+      no-permissions: "§cYou don't have the required permissions for this subcommand.§r"
+    api:
+      success_linked: "§aGitHub account successfully linked!§r"
+      fail_linked: "§cFailed to link GitHub account. Please try again later.§r"
+      show_link: "§bLinked GitHub: §f%s§r"
+      not_linked_profile: "§cYou dont link github account"
+      profile_not_found: "§cProfile not found.§r"
+      loading:
+        save: "§eSaving..."
