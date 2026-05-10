@@ -1,7 +1,7 @@
 # SteamAPIPlugin
 # for update config - reload or restart server
 
-version: 1 # config version
+version: 2 # config version
 debug: false # debug logging
 
 github:

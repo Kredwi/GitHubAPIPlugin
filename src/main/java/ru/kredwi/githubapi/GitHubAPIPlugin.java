@@ -40,7 +40,7 @@ public class GitHubAPIPlugin extends JavaPlugin {
         saveDefaultConfig();
         this.config = getConfig();
 
-        if (config.getInt("version") != 1) {
+        if (config.getInt("version") != 2) {
             getLogger().warning("Invalid config version.");
             getServer().getPluginManager()
                     .disablePlugin(this);
