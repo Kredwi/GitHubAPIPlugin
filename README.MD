@@ -116,7 +116,7 @@ The compiled JAR will be located in the `target/` folder with the name `GithubAP
 If the limit is exceeded, the plugin will return empty values until the next hour.
 
 ## Useful links
-- [Configuration file (config.yml)](https://github.com/Kredwi/GitHubAPIPlugin/blob/master/src/master/resources/config.yml)
+- [Configuration file (config.yml)](https://github.com/Kredwi/GitHubAPIPlugin/blob/master/src/main/resources/config.yml)
 - [GitHub REST API documentation (users)](https://docs.github.com/en/rest/users/users)
 
 ## License
