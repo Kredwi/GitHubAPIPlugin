@@ -29,10 +29,10 @@ messages:
   command:
     no-permissions: "§cYou don't have permission to use this command.§r"
     no-args: "§cRequired arguments are missing. Please check the command syntax.§r"
-    subcommand:
-      not-found: "§cSubcommand not found. Use /help for available commands.§r"
-      no-permissions: "§cYou don't have the required permissions for this subcommand.§r"
     api:
+      subcommand:
+        not-found: "§cSubcommand not found. Use /help for available commands.§r"
+        no-permissions: "§cYou don't have the required permissions for this subcommand.§r"
       success_linked: "§aGitHub account successfully linked!§r"
       fail_linked: "§cFailed to link GitHub account. Please try again later.§r"
       show_link: "§bLinked GitHub: §f%s§r"

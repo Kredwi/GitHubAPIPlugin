@@ -6,7 +6,7 @@
 
     <groupId>ru.kredwi</groupId>
     <artifactId>GithubAPIPlugin</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>Link in-game players to GitHub profiles and expose profile data through PlaceholderAPI placeholders.</description>
 

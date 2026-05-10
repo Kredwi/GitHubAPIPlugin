@@ -91,7 +91,7 @@ public class PluginCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args[0].trim().isEmpty()) {
-            sender.sendMessage(messageSource.get("messages.command.api.no-subcommand"));
+            sender.sendMessage(messageSource.get("messages.command.api.subcommand.not-found"));
             return true;
         }
 
