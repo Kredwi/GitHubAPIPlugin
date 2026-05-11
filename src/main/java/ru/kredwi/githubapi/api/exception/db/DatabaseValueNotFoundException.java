@@ -1,4 +1,4 @@
-package ru.kredwi.githubapi;
+package ru.kredwi.githubapi.api.exception.db;
 
 /*-
  * #%L
@@ -21,24 +21,15 @@ package ru.kredwi.githubapi;
  */
 
 
-import java.io.IOException;
-import java.util.Objects;
-import java.util.Properties;
+import lombok.experimental.StandardException;
 
-public class IntegratedTestProperties extends Properties {
-
-    public IntegratedTestProperties() {
-
-        try {
-            load(
-                    Objects.requireNonNull(getClass().getResourceAsStream("/integrated-test.properties"),
-                            "Integrated file with properties is not found")
-            );
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        if (isEmpty())
-            throw new IllegalStateException("Properties is empty after loading");
-    }
+/**
+ * {@code DatabaseValueNotFoundException} Value in database is not found
+ *
+ * @author Kredwi
+ * @since 1.0
+ *
+ */
+@StandardException
+public class DatabaseValueNotFoundException extends RuntimeException {
 }

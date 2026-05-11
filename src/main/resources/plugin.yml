@@ -1,9 +1,10 @@
 name: ${project.name}
 description: ${project.description}
 author: ${plugin.author}
-main: ${plugin.main-class}
-license: Apache License 2.0
 version: ${project.version}
+website: https://github.com/Kredwi/GitHubAPIPlugin
+license: Apache License 2.0
+main: ${plugin.main-class}
 api-version: 1.13
 folia-supported: false
 depend: [ PlaceholderAPI ]

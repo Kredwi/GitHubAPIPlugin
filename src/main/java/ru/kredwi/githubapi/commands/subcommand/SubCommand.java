@@ -1,4 +1,4 @@
-package ru.kredwi.githubapi;
+package ru.kredwi.githubapi.commands.subcommand;
 
 /*-
  * #%L
@@ -20,25 +20,17 @@ package ru.kredwi.githubapi;
  * #L%
  */
 
+import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.util.Objects;
-import java.util.Properties;
+import java.util.function.BiFunction;
 
-public class IntegratedTestProperties extends Properties {
-
-    public IntegratedTestProperties() {
-
-        try {
-            load(
-                    Objects.requireNonNull(getClass().getResourceAsStream("/integrated-test.properties"),
-                            "Integrated file with properties is not found")
-            );
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        if (isEmpty())
-            throw new IllegalStateException("Properties is empty after loading");
-    }
+/**
+ * Interface for subcommand
+ *
+ * @author Kredwi
+ * @since 1.2
+ *
+ */
+public interface SubCommand extends BiFunction<String[], CommandSender, @NotNull String> {
 }

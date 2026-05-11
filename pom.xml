@@ -6,9 +6,10 @@
 
     <groupId>ru.kredwi</groupId>
     <artifactId>GithubAPIPlugin</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.2-SNAPSHOT</version>
     <name>${project.artifactId}</name>
-    <description>Link in-game players to GitHub profiles and expose profile data through PlaceholderAPI placeholders.</description>
+    <description>Link in-game players to GitHub profiles and expose profile data through PlaceholderAPI placeholders.
+    </description>
 
     <properties>
         <plugin.author>Kredwi</plugin.author>
@@ -31,7 +32,7 @@
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
 
@@ -44,16 +45,6 @@
         <repository>
             <id>sonatype</id>
             <url>https://oss.sonatype.org/content/groups/public/</url>
-        </repository>
-        <!-- Vault -->
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-        <!-- WorldGuard -->
-        <repository>
-            <id>EngineHub</id>
-            <url>https://maven.enginehub.org/repo/</url>
         </repository>
         <!-- BStats (change to codemc.io) -->
         <repository>
@@ -132,6 +123,25 @@
             </resource>
         </resources>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>2.7.1</version>
+                <configuration>
+                    <licenseName>apache_v2</licenseName>
+                    <projectName>${project.name}</projectName>
+                    <inceptionYear>2026</inceptionYear>
+                    <organizationName>Kredwi</organizationName>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>update-file-header</goal>
+                        </goals>
+                        <phase>process-sources</phase>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>

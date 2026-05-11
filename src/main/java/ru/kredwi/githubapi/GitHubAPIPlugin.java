@@ -1,5 +1,26 @@
 package ru.kredwi.githubapi;
 
+/*-
+ * #%L
+ * GithubAPIPlugin
+ * %%
+ * Copyright (C) 2026 Kredwi
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
+
 import lombok.Getter;
 import lombok.val;
 import lombok.var;
@@ -7,11 +28,10 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.plugin.java.JavaPlugin;
-import ru.kredwi.githubapi.api.SessionGitHubProfileManager;
+import ru.kredwi.githubapi.api.exception.db.DatabaseInitializeException;
+import ru.kredwi.githubapi.api.github.AsyncGitHubProfileManager;
 import ru.kredwi.githubapi.commands.PluginCommand;
-import ru.kredwi.githubapi.db.DatabaseInitializeException;
-import ru.kredwi.githubapi.db.impl.mysql.CommonMySQLDatabase;
-import ru.kredwi.githubapi.db.impl.mysql.SessionMySQLDatabase;
+import ru.kredwi.githubapi.db.impl.AsyncMySQLDatabase;
 import ru.kredwi.githubapi.events.PlayerListener;
 import ru.kredwi.githubapi.placeholdersapi.PluginExpansion;
 
@@ -26,9 +46,9 @@ public class GitHubAPIPlugin extends JavaPlugin {
     private Metrics metrics;
 
     @Getter
-    private CommonMySQLDatabase mySQLDatabase;
+    private AsyncMySQLDatabase mySQLDatabase;
     private Configuration config;
-    private SessionGitHubProfileManager gitHubProfileManager;
+    private AsyncGitHubProfileManager gitHubProfileManager;
 
     @Override
     public void onLoad() {
@@ -52,7 +72,8 @@ public class GitHubAPIPlugin extends JavaPlugin {
             getLogger().info("[DEBUG] Debug logging is enabled");
 
         MessageSource messageSource = new MessageSource(this, getConfig());
-        this.gitHubProfileManager = new SessionGitHubProfileManager();
+        this.gitHubProfileManager = new AsyncGitHubProfileManager();
+        gitHubProfileManager.setDebug(debug);
         gitHubProfileManager.setDebug(debug);
         gitHubProfileManager.setTimeout(config.getInt("github.http.timeout", 1000));
         val enableToken = config.getBoolean("github.token.enable", false);
@@ -73,13 +94,11 @@ public class GitHubAPIPlugin extends JavaPlugin {
         var url = String.format("jdbc:mysql://%s:%s/%s?useSSL=false&allowPublicKeyRetrieval=true",
                 host, port, name);
 
-        SessionMySQLDatabase mySQLDatabase = SessionMySQLDatabase
-                .builder()
-                .url(url)
-                .username(username)
-                .password(password)
-                .debug(debug)
-                .build();
+        AsyncMySQLDatabase mySQLDatabase = new AsyncMySQLDatabase();
+        mySQLDatabase.setUrl(url);
+        mySQLDatabase.setUsername(username);
+        mySQLDatabase.setPassword(password);
+        mySQLDatabase.setDebug(debug);
         try {
             mySQLDatabase.init();
         } catch (DatabaseInitializeException e) {
@@ -92,8 +111,6 @@ public class GitHubAPIPlugin extends JavaPlugin {
 
         getServer().getPluginManager()
                 .registerEvents(new PlayerListener(mySQLDatabase, gitHubProfileManager), this);
-
-
         if (config.getBoolean("debug"))
             LOGGER.info("Register PlaceholdersAPI Expansion");
         PlaceholderExpansion expansion = new PluginExpansion(mySQLDatabase, gitHubProfileManager, messageSource);
@@ -115,17 +132,15 @@ public class GitHubAPIPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (this.gitHubProfileManager != null) {
-            this.gitHubProfileManager.close();
+            this.gitHubProfileManager.stopSession();
             this.gitHubProfileManager = null;
         }
         if (this.mySQLDatabase != null) {
-            this.mySQLDatabase.disconnect();
+            this.mySQLDatabase.stopSession();
             this.mySQLDatabase = null;
         }
 
         this.config = null;
-
-
         if (metrics != null) {
             metrics.shutdown();
             this.metrics = null;

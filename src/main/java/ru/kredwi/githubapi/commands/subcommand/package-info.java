@@ -1,4 +1,12 @@
-package ru.kredwi.githubapi.api.exception;
+/**
+ * Pageckage with classes subcommands for main command <b>/githubapi</b>
+ *
+ * @author Kredwi
+ * @see ru.kredwi.githubapi.commands.subcommand.SubCommand
+ * @since 1.2
+ *
+ */
+package ru.kredwi.githubapi.commands.subcommand;
 
 /*-
  * #%L
@@ -21,15 +29,4 @@ package ru.kredwi.githubapi.api.exception;
  */
 
 
-import lombok.experimental.StandardException;
 
-/**
- * {@code ProfileNotFoundException} Linked profile is not founds
- *
- * @author Kredwi
- * @since 1.0
- *
- */
-@StandardException
-public class ProfileNotFoundException extends Exception {
-}

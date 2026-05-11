@@ -1,4 +1,25 @@
-package ru.kredwi.githubapi.api;
+package ru.kredwi.githubapi.api.github;
+
+/*-
+ * #%L
+ * GithubAPIPlugin
+ * %%
+ * Copyright (C) 2026 Kredwi
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -7,9 +28,9 @@ import lombok.extern.java.Log;
 import lombok.var;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import ru.kredwi.githubapi.api.Profile;
 import ru.kredwi.githubapi.api.exception.ProfileNotFoundException;
-import ru.kredwi.githubapi.async.AsyncUtils;
-import ru.kredwi.githubapi.db.DatabaseValueNotFoundException;
+import ru.kredwi.githubapi.async.AbstractAsyncCache;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -18,23 +39,14 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Log
-public class SessionGitHubProfileManager {
+public class AsyncGitHubProfileManager extends AbstractAsyncCache<Profile> {
 
     public static final Gson gson = new Gson();
 
     public static final String BASE_API = "https://api.github.com";
-
-    private final Map<String, Profile> sessions = new ConcurrentHashMap<>();
-
-    private final Map<String, Future<?>> pendings = new ConcurrentHashMap<>();
-
-    private final ExecutorService gitExecutorService = Executors.newFixedThreadPool(5);
 
     @Setter
     private boolean debug = false;
@@ -44,24 +56,6 @@ public class SessionGitHubProfileManager {
     @Nullable
     @Setter
     private String token;
-
-    public Profile getProfile(@NotNull String username) throws ProfileNotFoundException {
-        Profile profile = Optional.ofNullable(sessions.get(username))
-                .orElse(Profile.EMPTY_PROFILE);
-
-        if (profile == Profile.EMPTY_PROFILE)
-            throw new ProfileNotFoundException("Profile with username " + username + " not found");
-
-        return profile;
-    }
-
-    public void close() {
-        pendings.values().forEach(e -> e.cancel(true));
-        sessions.clear();
-
-        AsyncUtils.shutdownTaskExecutor(gitExecutorService);
-
-    }
 
     @Nullable
     private Profile getProfileFromAPI(String username) throws ProfileNotFoundException {
@@ -81,8 +75,8 @@ public class SessionGitHubProfileManager {
             String serverResponse;
             try (BufferedReader br = new BufferedReader(new InputStreamReader(
                     (conn.getResponseCode() == HttpURLConnection.HTTP_OK)
-                    ? conn.getInputStream()
-                    : conn.getErrorStream(), StandardCharsets.UTF_8))) {
+                            ? conn.getInputStream()
+                            : conn.getErrorStream(), StandardCharsets.UTF_8))) {
                 serverResponse = br.lines().collect(Collectors.joining());
             }
 
@@ -108,8 +102,6 @@ public class SessionGitHubProfileManager {
                 log.severe("Error of json syntax provided json ".concat(serverResponse));
                 return null;
             }
-
-
         } catch (IOException e) {
             log.severe("Error of connection: ".concat(e.getMessage()));
             return null;
@@ -119,41 +111,21 @@ public class SessionGitHubProfileManager {
         }
     }
 
-    public boolean isLoaded(String databaseName) {
-        return !pendings.containsKey(databaseName) && sessions.get(databaseName) != null;
-    }
-
-    public void createSession(String dataKey, Runnable afterLoad) {
-        pendings.computeIfAbsent(dataKey, k -> {
-            if (debug)
-                log.info(String.format("[DEBUG] [Git Session] Create session with id %s", k));
-
-            return gitExecutorService.submit(() -> {
-                try {
-                    var profile = getProfileFromAPI(k);
-                    if (profile == null)
-                        profile = Profile.EMPTY_PROFILE;
-                    sessions.put(k, profile);
-                } catch (ProfileNotFoundException e) {
-                    sessions.putIfAbsent(k, Profile.EMPTY_PROFILE);
-                } finally {
-                    sessions.putIfAbsent(k, Profile.EMPTY_PROFILE);
-                    pendings.remove(k);
-                }
-                if (afterLoad != null)
-                    afterLoad.run();
-            });
-        });
-    }
-
-    public void removeSession(String gitUsername) {
+    public void createSession(String databaseName, Runnable afterLoad) {
         if (debug)
-            log.info(String.format("[DEBUG] [Git Session] Remove session with id %s", gitUsername));
+            log.info("[DEBUG] [GitManager] Create git session with id " + databaseName);
 
-        var task = pendings.remove(gitUsername);
-        if (task != null)
-            task.cancel(true);
-        sessions.remove(gitUsername);
+        super.createSession(databaseName,
+                () -> {
+                    try {
+                        var profile = getProfileFromAPI(databaseName);
+                        if (profile == null)
+                            profile = Profile.EMPTY_PROFILE;
+                        return profile;
+                    } catch (ProfileNotFoundException e) {
+                        return null;
+                    }
+                }, afterLoad);
     }
 
     @Nullable
@@ -165,5 +137,10 @@ public class SessionGitHubProfileManager {
             log.severe("Error of generate url: ".concat(e.getMessage()));
             return null;
         }
+    }
+
+    @Override
+    public void updateSession(@NotNull String sessionName, Profile newSessionInstance, @Nullable Runnable afterLoad) {
+        createSession(sessionName, afterLoad);
     }
 }

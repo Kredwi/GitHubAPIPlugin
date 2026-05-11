@@ -1,5 +1,26 @@
 package ru.kredwi.githubapi.placeholdersapi;
 
+/*-
+ * #%L
+ * GithubAPIPlugin
+ * %%
+ * Copyright (C) 2026 Kredwi
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
+
 import lombok.Setter;
 import lombok.extern.java.Log;
 import lombok.var;
@@ -10,31 +31,43 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import ru.kredwi.githubapi.MessageSource;
 import ru.kredwi.githubapi.api.Profile;
-import ru.kredwi.githubapi.api.SessionGitHubProfileManager;
-import ru.kredwi.githubapi.api.exception.ProfileNotFoundException;
-import ru.kredwi.githubapi.db.DatabaseValueNotFoundException;
-import ru.kredwi.githubapi.db.impl.mysql.SessionMySQLDatabase;
+import ru.kredwi.githubapi.api.github.AsyncGitHubProfileManager;
+import ru.kredwi.githubapi.db.impl.AsyncMySQLDatabase;
 
 import java.util.*;
 import java.util.function.Function;
 
+/**
+ * PlaceholdersAPI expansion for show information from api
+ *
+ * @author Kredwi
+ * @since 1.0
+ *
+ */
 @Log
 public class PluginExpansion extends PlaceholderExpansion {
 
+    public static final String EMPTY_PLACEHOLDER = "";
+    /**
+     * Support placeholders with plugin
+     *
+     * @since 1.0
+     *
+     */
     private final Map<String, Function<Profile, String>> placeholders = new HashMap<>();
-
     @Setter
-    private SessionMySQLDatabase dbBridge;
+    private AsyncMySQLDatabase dbBridge;
     @Setter
-    private SessionGitHubProfileManager gitHubAPI;
+    private AsyncGitHubProfileManager gitHubAPI;
     @Setter
     private MessageSource messageSource;
 
-    public PluginExpansion(SessionMySQLDatabase bridge, SessionGitHubProfileManager api, MessageSource messageSource) {
+    public PluginExpansion(AsyncMySQLDatabase bridge, AsyncGitHubProfileManager api, MessageSource messageSource) {
         this.dbBridge = bridge;
         this.gitHubAPI = api;
         this.messageSource = messageSource;
 
+        // supported placeholders
         placeholders.put("login", Profile::getLogin);
         placeholders.put("id", p -> String.valueOf(p.getId()));
         placeholders.put("type", Profile::getType);
@@ -93,30 +126,25 @@ public class PluginExpansion extends PlaceholderExpansion {
             return null;
         var loadingMessage = messageSource.get("papi.message.loading");
 
-        if (!dbBridge.isLoaded(player.getName())) {
-            return "";
+        // if database is not loading
+        if (!dbBridge.isLoaded(player.getName()))
+            return loadingMessage; // show loading message
+
+        // if player dont linked github account
+        var databaseUsername = dbBridge.getSession(player.getName());
+        if (!databaseUsername.isPresent()) {
+            return EMPTY_PLACEHOLDER; // empty placeholders
         }
 
-        try {
-            var username = dbBridge.getProfile(player.getName());
-            if (username == null) {
-                return loadingMessage;
-            }
+        // If profile from github api is not loading
+        if (!gitHubAPI.isLoaded(databaseUsername.get()))
+            return loadingMessage; // show loading message
 
-            if (!gitHubAPI.isLoaded(username)) {
-                return loadingMessage;
-            }
-
-            Profile profile = gitHubAPI.getProfile(username);
-            if (profile == null) {
-                return loadingMessage;
-            }
-
-            return Optional.ofNullable(placeholders.get(params.trim().toLowerCase()))
-                    .map(placeholder -> placeholder.apply(profile))
-                    .orElse("");
-        } catch (ProfileNotFoundException | DatabaseValueNotFoundException e) {
-            return "";
-        }
+        var profile = gitHubAPI.getSession(databaseUsername.get());
+        return profile
+                .map(value -> Optional.ofNullable(placeholders.get(params.trim().toLowerCase()))
+                        .map(placeholder -> placeholder.apply(value))
+                        .orElse(EMPTY_PLACEHOLDER))
+                .orElse(EMPTY_PLACEHOLDER);
     }
 }
