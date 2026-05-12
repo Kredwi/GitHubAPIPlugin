@@ -23,6 +23,7 @@ package ru.kredwi.githubapi.db.impl;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.pool.HikariPool;
 import lombok.Setter;
 import lombok.extern.java.Log;
 import lombok.val;
@@ -88,11 +89,16 @@ public class AsyncMySQLDatabase extends CommonAsyncDatabase {
 
     public void init() {
         debug("Init database");
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(url);
-        config.setUsername(username);
-        config.setPassword(password);
-        dataSource = new HikariDataSource(config);
+        try {
+            HikariConfig config = new HikariConfig();
+            config.setJdbcUrl(url);
+            config.setUsername(username);
+            config.setPassword(password);
+            dataSource = new HikariDataSource(config);
+        } catch (HikariPool.PoolInitializationException e) {
+            log.severe("Error of initialize database: " + e.getMessage());
+            return;
+        }
 
         createTablesIfExists();
         debug("MySQL database is ready");

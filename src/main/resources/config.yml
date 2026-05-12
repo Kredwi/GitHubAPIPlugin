@@ -15,7 +15,7 @@ github:
     value:
 
 database:
-  type: MySQL # MySQL, SQLite
+  type: SQLite # MySQL, SQLite
   # Params for MySQL
   name: GithubAPIPlugin # MySQL database name
   host: 127.0.0.1 # Database host (use an IP or hostname).
@@ -41,5 +41,5 @@ messages:
       not_linked_profile: "§cYou dont link github account"
       profile_not_found: "§cProfile not found.§r"
       loading:
-        loading: "&eLoading data..."
+        loading: "§eLoading data..."
         save: "§eSaving..."
