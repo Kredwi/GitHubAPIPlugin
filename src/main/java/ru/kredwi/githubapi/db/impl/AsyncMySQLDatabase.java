@@ -21,6 +21,8 @@ package ru.kredwi.githubapi.db.impl;
  */
 
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.Setter;
 import lombok.extern.java.Log;
 import lombok.val;
@@ -29,7 +31,10 @@ import org.jetbrains.annotations.Nullable;
 import ru.kredwi.githubapi.api.exception.db.DatabaseInitializeException;
 import ru.kredwi.githubapi.api.exception.db.DatabaseValueNotFoundException;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 @Log
 public class AsyncMySQLDatabase extends CommonAsyncDatabase {
@@ -37,19 +42,6 @@ public class AsyncMySQLDatabase extends CommonAsyncDatabase {
     private String username;
     @Setter
     private String password;
-
-    @Override
-    public void stopSession() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                debug("Close connection with database");
-                connection.close();
-            }
-            super.stopSession();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     @Override
     public void createSession(@NotNull String sessionName,
@@ -96,12 +88,11 @@ public class AsyncMySQLDatabase extends CommonAsyncDatabase {
 
     public void init() {
         debug("Init database");
-        try {
-            connection = DriverManager.getConnection(url, username, password);
-            debug("Connection is created");
-        } catch (SQLException e) {
-            throw new DatabaseInitializeException(e);
-        }
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(url);
+        config.setUsername(username);
+        config.setPassword(password);
+        dataSource = new HikariDataSource(config);
 
         createTablesIfExists();
         debug("MySQL database is ready");
@@ -109,7 +100,7 @@ public class AsyncMySQLDatabase extends CommonAsyncDatabase {
 
 
     private void createTablesIfExists() {
-        try (Statement statement = connection.createStatement()) {
+        try (Statement statement = getConnection().createStatement()) {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS `githubapi` (\n" +
                     "    id INT PRIMARY KEY AUTO_INCREMENT,\n" +
                     "    username VARCHAR(255) UNIQUE NOT NULL,\n" +

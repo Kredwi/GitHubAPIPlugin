@@ -20,6 +20,7 @@ package ru.kredwi.githubapi.db.impl;
  * #L%
  */
 
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.Setter;
 import lombok.extern.java.Log;
 import org.jetbrains.annotations.NotNull;
@@ -53,7 +54,7 @@ public abstract class CommonAsyncDatabase extends AbstractAsyncCache<String> {
      *
      */
     @Nullable
-    protected Connection connection;
+    protected HikariDataSource dataSource;
     /**
      * debug mode
      *
@@ -97,15 +98,10 @@ public abstract class CommonAsyncDatabase extends AbstractAsyncCache<String> {
      */
     @Override
     public void stopSession() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                debug("Close connection with database");
-                connection.close();
-            }
-            super.stopSession();
-        } catch (SQLException e) {
-            throw new RuntimeException("Error of stop session", e);
-        }
+        if (this.dataSource != null)
+            dataSource.close();
+        super.stopSession();
+
     }
 
     /**
@@ -129,10 +125,10 @@ public abstract class CommonAsyncDatabase extends AbstractAsyncCache<String> {
      * @throws IllegalStateException if connection is not created
      *
      */
-    protected Connection getConnection() {
-        if (connection == null)
+    protected Connection getConnection() throws SQLException {
+        if (dataSource == null)
             throw new IllegalStateException("Connection is not a ready");
-        return this.connection;
+        return this.dataSource.getConnection();
     }
 
     /**
