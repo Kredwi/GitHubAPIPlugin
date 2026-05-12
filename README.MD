@@ -9,7 +9,6 @@ The plugin allows binding a GitHub account to a player and displaying informatio
 1. **Java 8** or higher
 2. **Spigot** / **Paper** from version 1.12 up to the latest
 3. Installed **PlaceholdersAPI** plugin version **2.12.2** or newer
-4. MySQL database
 
 ## How it works
 
@@ -77,7 +76,7 @@ The `config.yml` file is created automatically on first run. It contains:
 
 ## Database
 
-- Only MySQL is supported (mandatory).
+- Only 2 database is supported (MySQL and SQLite).
 - Queries are executed asynchronously using a pool of 5 threads.
 - When unloading the plugin, the thread pool is properly shut down.
 
