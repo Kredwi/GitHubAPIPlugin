@@ -1,4 +1,4 @@
-package ru.kredwi.githubapi.cache;
+package ru.kredwi.githubapi.api.cache;
 
 /*-
  * #%L
@@ -60,8 +60,6 @@ public interface SessionCache<C> {
      *
      */
     void createSession(@NotNull String sessionName, @NotNull Supplier<@Nullable C> loadingCallback, @Nullable Runnable callback);
-
-    void updateSession(@NotNull String sessionName, C data, Runnable afterLoad);
 
     /**
      * Method for remove sessions

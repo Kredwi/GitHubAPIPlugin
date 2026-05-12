@@ -25,7 +25,7 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import ru.kredwi.githubapi.api.CachedSession;
-import ru.kredwi.githubapi.cache.SessionCache;
+import ru.kredwi.githubapi.api.cache.SessionCache;
 
 import java.util.Map;
 import java.util.Objects;
@@ -65,7 +65,7 @@ public abstract class AbstractAsyncCache<P> implements SessionCache<P> {
                               @NotNull Supplier<@Nullable P> loadingCallback,
                               @Nullable Runnable callback) {
         Objects.requireNonNull(sessionName, "sessionName cannot be null");
-        Objects.requireNonNull(sessionName, "loadingCallback cannot be null");
+        Objects.requireNonNull(loadingCallback, "loadingCallback cannot be null");
         runAsyncTask(sessionName,
                 () -> {
                     P p = loadingCallback.get();
@@ -100,7 +100,7 @@ public abstract class AbstractAsyncCache<P> implements SessionCache<P> {
 
     @Override
     public boolean isLoaded(@NotNull String sessionName) {
-        Objects.requireNonNull(sessionName, "sessionName' cannot'be null");
+        Objects.requireNonNull(sessionName, "sessionName cannot be null");
         return !loadingPendings.containsKey(sessionName) && sessions.get(sessionName) != null;
     }
 
@@ -112,6 +112,7 @@ public abstract class AbstractAsyncCache<P> implements SessionCache<P> {
      * @param sessionName name of session
      * @param runnable    runnable to run in async
      * @throws NullPointerException if param sessionName or runnable is null
+     * @throws RuntimeException     if runnable throwed
      * @since 1.2
      *
      */
@@ -122,6 +123,8 @@ public abstract class AbstractAsyncCache<P> implements SessionCache<P> {
                 executorService.submit(() -> {
                     try {
                         runnable.run();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
                     } finally {
                         loadingPendings.remove(sessionName);
                     }

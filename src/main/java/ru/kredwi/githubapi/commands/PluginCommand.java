@@ -33,7 +33,7 @@ import ru.kredwi.githubapi.api.github.AsyncGitHubProfileManager;
 import ru.kredwi.githubapi.commands.subcommand.LinkSubCommand;
 import ru.kredwi.githubapi.commands.subcommand.ShowSubCommand;
 import ru.kredwi.githubapi.commands.subcommand.SubCommand;
-import ru.kredwi.githubapi.db.impl.AsyncMySQLDatabase;
+import ru.kredwi.githubapi.db.impl.CommonAsyncDatabase;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -56,7 +56,7 @@ public class PluginCommand implements CommandExecutor, TabCompleter {
     private final Map<String, SubCommand> subCommands = new HashMap<>();
 
     public PluginCommand(MessageSource messageSource,
-                         AsyncMySQLDatabase databaseBridge,
+                         CommonAsyncDatabase databaseBridge,
                          AsyncGitHubProfileManager gitHubProfileManager) {
         this.messageSource = messageSource;
 

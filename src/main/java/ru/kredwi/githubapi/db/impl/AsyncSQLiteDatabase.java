@@ -20,8 +20,6 @@ package ru.kredwi.githubapi.db.impl;
  * #L%
  */
 
-
-import lombok.Setter;
 import lombok.extern.java.Log;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
@@ -32,26 +30,8 @@ import ru.kredwi.githubapi.api.exception.db.DatabaseValueNotFoundException;
 import java.sql.*;
 
 @Log
-public class AsyncMySQLDatabase extends CommonAsyncDatabase {
-    @Setter
-    private String username;
-    @Setter
-    private String password;
+public class AsyncSQLiteDatabase extends CommonAsyncDatabase {
 
-    @Override
-    public void stopSession() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                debug("Close connection with database");
-                connection.close();
-            }
-            super.stopSession();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
     public void createSession(@NotNull String sessionName,
                               @Nullable Runnable beforeLoad,
                               @Nullable Runnable afterLoad) throws DatabaseValueNotFoundException {
@@ -82,11 +62,11 @@ public class AsyncMySQLDatabase extends CommonAsyncDatabase {
     @Override
     protected void saveProfileRequest(String username, String linkedUsername) {
         val sql = "INSERT INTO `githubapi` (username, linkedUsername)"
-                + " VALUES (?, ?) ON DUPLICATE KEY UPDATE linkedUsername = ?";
+                + " VALUES (?, ?)" +
+                "ON CONFLICT(username) DO UPDATE SET linkedUsername = excluded.linkedUsername";
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, username);
             statement.setString(2, linkedUsername);
-            statement.setString(3, linkedUsername);
             if (statement.executeUpdate() == 0)
                 debug("Save profile returned 0 changes rows");
         } catch (SQLException e) {
@@ -97,21 +77,21 @@ public class AsyncMySQLDatabase extends CommonAsyncDatabase {
     public void init() {
         debug("Init database");
         try {
-            connection = DriverManager.getConnection(url, username, password);
+            connection = DriverManager.getConnection(url);
             debug("Connection is created");
         } catch (SQLException e) {
             throw new DatabaseInitializeException(e);
         }
 
         createTablesIfExists();
-        debug("MySQL database is ready");
+        debug("SQLite database is ready");
     }
 
 
     private void createTablesIfExists() {
         try (Statement statement = connection.createStatement()) {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS `githubapi` (\n" +
-                    "    id INT PRIMARY KEY AUTO_INCREMENT,\n" +
+                    "    id INTEGER PRIMARY KEY,\n" +
                     "    username VARCHAR(255) UNIQUE NOT NULL,\n" +
                     "    linkedUsername VARCHAR(255) NOT NULL\n" +
                     ");");

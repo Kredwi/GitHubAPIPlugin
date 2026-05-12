@@ -27,7 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import ru.kredwi.githubapi.MessageSource;
 import ru.kredwi.githubapi.api.exception.db.DatabaseValueNotFoundException;
 import ru.kredwi.githubapi.api.github.AsyncGitHubProfileManager;
-import ru.kredwi.githubapi.db.impl.AsyncMySQLDatabase;
+import ru.kredwi.githubapi.db.impl.CommonAsyncDatabase;
 
 import java.util.Optional;
 
@@ -35,7 +35,7 @@ import java.util.Optional;
 public class LinkSubCommand implements SubCommand {
 
     @NotNull
-    private AsyncMySQLDatabase databaseBridge;
+    private CommonAsyncDatabase databaseBridge;
     @NotNull
     private AsyncGitHubProfileManager gitManager;
     @NotNull
@@ -46,20 +46,20 @@ public class LinkSubCommand implements SubCommand {
         if (args.length < 1)
             return "messages.command.no-args";
         databaseBridge.updateSession(sender.getName(), args[0], () -> {
-                    try {
-                        Optional<String> sessionOptional = databaseBridge.getSession(sender.getName());
-                        if (sessionOptional.isPresent()) {
-                            String session = sessionOptional.get();
+            try {
+                Optional<String> sessionOptional = databaseBridge.getSession(sender.getName());
+                if (sessionOptional.isPresent()) {
+                    String session = sessionOptional.get();
 
-                            gitManager.createSession(session, null);
-                            messageSource.sendMessage(sender, messageSource.get("messages.command.api.success_linked"));
-                        } else
-                            messageSource.sendMessage(sender, messageSource.get("messages.command.api.fail_linked"));
+                    gitManager.createSession(session, null);
+                    messageSource.sendMessage(sender, messageSource.get("messages.command.api.success_linked"));
+                } else
+                    messageSource.sendMessage(sender, messageSource.get("messages.command.api.fail_linked"));
 
-                    } catch (DatabaseValueNotFoundException e) {
-                        messageSource.sendMessage(sender, messageSource.get("messages.command.api.not_linked_profile"));
-                    }
-                });
+            } catch (DatabaseValueNotFoundException e) {
+                messageSource.sendMessage(sender, messageSource.get("messages.command.api.not_linked_profile"));
+            }
+        });
         return "messages.command.api.loading.save";
     }
 }

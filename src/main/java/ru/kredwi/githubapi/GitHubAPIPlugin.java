@@ -26,29 +26,45 @@ import lombok.val;
 import lombok.var;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bstats.bukkit.Metrics;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Nullable;
+import ru.kredwi.githubapi.api.GithubPlugin;
 import ru.kredwi.githubapi.api.exception.db.DatabaseInitializeException;
 import ru.kredwi.githubapi.api.github.AsyncGitHubProfileManager;
 import ru.kredwi.githubapi.commands.PluginCommand;
 import ru.kredwi.githubapi.db.impl.AsyncMySQLDatabase;
+import ru.kredwi.githubapi.db.impl.AsyncSQLiteDatabase;
+import ru.kredwi.githubapi.db.impl.CommonAsyncDatabase;
 import ru.kredwi.githubapi.events.PlayerListener;
 import ru.kredwi.githubapi.placeholdersapi.PluginExpansion;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.logging.Logger;
 
-public class GitHubAPIPlugin extends JavaPlugin {
+public class GitHubAPIPlugin extends JavaPlugin implements GithubPlugin {
 
     public static final int METRICS_ID = 31202;
-
     public static Logger LOGGER;
-
+    private static GitHubAPIPlugin INSTANCE;
     private Metrics metrics;
 
     @Getter
-    private AsyncMySQLDatabase mySQLDatabase;
+    private CommonAsyncDatabase database;
     private Configuration config;
-    private AsyncGitHubProfileManager gitHubProfileManager;
+    @Getter
+    private AsyncGitHubProfileManager gitSessionManager;
+
+    public GitHubAPIPlugin() {
+        INSTANCE = this;
+    }
+
+    @Nullable
+    public static GithubPlugin getPluginInstance() {
+        return INSTANCE;
+    }
 
     @Override
     public void onLoad() {
@@ -59,46 +75,143 @@ public class GitHubAPIPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         this.config = getConfig();
-
-        if (config.getInt("version") != 2) {
-            getLogger().warning("Invalid config version.");
+        if (config.getInt("version") != 3) {
+            getLogger().warning("Invalid config version. Please remove config.yml file in plugin folder");
             getServer().getPluginManager()
                     .disablePlugin(this);
             return;
         }
 
-        var debug = getConfig().getBoolean("debug");
+        var debug = isDebug();
         if (debug)
             getLogger().info("[DEBUG] Debug logging is enabled");
 
         MessageSource messageSource = new MessageSource(this, getConfig());
-        this.gitHubProfileManager = new AsyncGitHubProfileManager();
-        gitHubProfileManager.setDebug(debug);
-        gitHubProfileManager.setDebug(debug);
-        gitHubProfileManager.setTimeout(config.getInt("github.http.timeout", 1000));
+        this.gitSessionManager = new AsyncGitHubProfileManager();
+        gitSessionManager.setDebug(debug);
+        gitSessionManager.setTimeout(config.getInt("github.http.timeout", 1000));
+
+
         val enableToken = config.getBoolean("github.token.enable", false);
         if (enableToken) {
             val token = config.getString("github.token.value");
             if (token != null && !token.isEmpty()) {
                 if (debug)
                     getLogger().info("[DEBUG] Token is enabled");
-                gitHubProfileManager.setToken(token);
+                gitSessionManager.setToken(token);
             }
         }
 
+        var databaseType = config.getString("database.type");
+        if (databaseType.equalsIgnoreCase("mysql"))
+            setMySQLDatabase();
+        else if (databaseType.equalsIgnoreCase("sqlite"))
+            setSQLiteDatabase();
+        else {
+            getLogger().severe("Unknown type of database");
+            Bukkit.getPluginManager()
+                    .disablePlugin(this);
+            return;
+        }
+
+        getServer().getPluginManager()
+                .registerEvents(new PlayerListener(database, gitSessionManager), this);
+        if (isDebug())
+            LOGGER.info("[DEBUG] Register PlaceholdersAPI Expansion");
+        PlaceholderExpansion expansion = new PluginExpansion(database, gitSessionManager, messageSource);
+        expansion.register();
+
+        val pluginCommand = getServer().getPluginCommand("githubapi");
+        if (pluginCommand != null) {
+            val command = new PluginCommand(messageSource, database,
+                    gitSessionManager);
+            pluginCommand.setExecutor(command);
+            pluginCommand.setTabCompleter(command);
+        }
+
+        if (isDebug())
+            getLogger().info("[DEBUG] Loading metrics");
+        this.metrics = new Metrics(this, METRICS_ID);
+    }
+
+    @Override
+    public void onDisable() {
+        if (this.gitSessionManager != null) {
+            this.gitSessionManager.stopSession();
+            this.gitSessionManager = null;
+        }
+        if (this.database != null) {
+            this.database.stopSession();
+            this.database = null;
+        }
+
+        this.config = null;
+        if (metrics != null) {
+            metrics.shutdown();
+            this.metrics = null;
+        }
+    }
+
+    private void setSQLiteDatabase() {
+        if (isDebug())
+            getLogger().info("[DEBUG] [DATABASE] initiliaze SQLite database");
+
+        File dbFile = getSQLiteFile();
+
+        String url = "jdbc:sqlite:" + dbFile.getAbsolutePath();
+
+        AsyncSQLiteDatabase database = new AsyncSQLiteDatabase();
+        database.setUrl(url);
+        database.setDebug(isDebug());
+        try {
+            database.init();
+        } catch (DatabaseInitializeException e) {
+            getLogger().severe("Error of database initiliaze: " + e.getMessage());
+            getServer().getPluginManager()
+                    .disablePlugin(this);
+            return;
+        }
+        this.database = database;
+    }
+
+    @SuppressWarnings("unused")
+    private File getSQLiteFile() {
+        File datafolder = getDataFolder();
+        if (!datafolder.exists())
+            datafolder.mkdirs();
+        File dbFile = new File(datafolder, "data.db");
+        if (!dbFile.exists()) {
+            try {
+                dbFile.createNewFile();
+            } catch (IOException e) {
+                throw new DatabaseInitializeException("Error of creating SQLite file", e);
+            }
+        }
+        return dbFile;
+    }
+
+    private void setMySQLDatabase() {
+        if (isDebug())
+            getLogger().info("[DEBUG] [DATABASE] initiliaze MySQL database");
         var name = config.getString("database.name");
         var host = config.getString("database.host");
         var port = config.getString("database.port");
         var password = config.getString("database.password");
         var username = config.getString("database.username");
-        var url = String.format("jdbc:mysql://%s:%s/%s?useSSL=false&allowPublicKeyRetrieval=true",
+        var url = String.format("jdbc:mysql://%s:%s/%s" +
+                        "?useSSL=false" +
+                        "&allowPublicKeyRetrieval=true" +
+                        "&connectTimeout=5000" +
+                        "&socketTimeout=30000" +
+                        "&autoReconnect=true",
                 host, port, name);
 
         AsyncMySQLDatabase mySQLDatabase = new AsyncMySQLDatabase();
         mySQLDatabase.setUrl(url);
         mySQLDatabase.setUsername(username);
         mySQLDatabase.setPassword(password);
-        mySQLDatabase.setDebug(debug);
+        mySQLDatabase.setDebug(isDebug());
+
         try {
             mySQLDatabase.init();
         } catch (DatabaseInitializeException e) {
@@ -107,43 +220,13 @@ public class GitHubAPIPlugin extends JavaPlugin {
                     .disablePlugin(this);
             return;
         }
-        this.mySQLDatabase = mySQLDatabase;
-
-        getServer().getPluginManager()
-                .registerEvents(new PlayerListener(mySQLDatabase, gitHubProfileManager), this);
-        if (config.getBoolean("debug"))
-            LOGGER.info("Register PlaceholdersAPI Expansion");
-        PlaceholderExpansion expansion = new PluginExpansion(mySQLDatabase, gitHubProfileManager, messageSource);
-        expansion.register();
-
-        val pluginCommand = getServer().getPluginCommand("githubapi");
-        if (pluginCommand != null) {
-            val command = new PluginCommand(messageSource, mySQLDatabase,
-                    gitHubProfileManager);
-            pluginCommand.setExecutor(command);
-            pluginCommand.setTabCompleter(command);
-        }
-
-        if (debug)
-            getLogger().info("[DEBUG] Loading metrics");
-        this.metrics = new Metrics(this, METRICS_ID);
+        this.database = mySQLDatabase;
     }
 
     @Override
-    public void onDisable() {
-        if (this.gitHubProfileManager != null) {
-            this.gitHubProfileManager.stopSession();
-            this.gitHubProfileManager = null;
-        }
-        if (this.mySQLDatabase != null) {
-            this.mySQLDatabase.stopSession();
-            this.mySQLDatabase = null;
-        }
-
-        this.config = null;
-        if (metrics != null) {
-            metrics.shutdown();
-            this.metrics = null;
-        }
+    public boolean isDebug() {
+        if (config == null)
+            return false;
+        return config.getBoolean("debug");
     }
 }

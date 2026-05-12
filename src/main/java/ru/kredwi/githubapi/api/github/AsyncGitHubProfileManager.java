@@ -128,6 +128,14 @@ public class AsyncGitHubProfileManager extends AbstractAsyncCache<Profile> {
                 }, afterLoad);
     }
 
+    @Override
+    public void removeSession(@NotNull String sessionName) {
+        if (debug)
+            log.info("[DEBUG] [GitManager] Remove git session with id " + sessionName);
+
+        super.removeSession(sessionName);
+    }
+
     @Nullable
     private URL generateURL(String username) {
         try {
@@ -137,10 +145,5 @@ public class AsyncGitHubProfileManager extends AbstractAsyncCache<Profile> {
             log.severe("Error of generate url: ".concat(e.getMessage()));
             return null;
         }
-    }
-
-    @Override
-    public void updateSession(@NotNull String sessionName, Profile newSessionInstance, @Nullable Runnable afterLoad) {
-        createSession(sessionName, afterLoad);
     }
 }

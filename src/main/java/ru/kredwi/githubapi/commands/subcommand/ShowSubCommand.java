@@ -22,21 +22,23 @@ package ru.kredwi.githubapi.commands.subcommand;
 
 
 import lombok.AllArgsConstructor;
+import lombok.extern.java.Log;
 import lombok.val;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import ru.kredwi.githubapi.MessageSource;
 import ru.kredwi.githubapi.api.Profile;
 import ru.kredwi.githubapi.api.github.AsyncGitHubProfileManager;
-import ru.kredwi.githubapi.db.impl.AsyncMySQLDatabase;
+import ru.kredwi.githubapi.db.impl.CommonAsyncDatabase;
 
 import java.util.Optional;
 
 @AllArgsConstructor
+@Log
 public class ShowSubCommand implements SubCommand {
 
     @NotNull
-    private AsyncMySQLDatabase databaseBridge;
+    private CommonAsyncDatabase databaseBridge;
     @NotNull
     private AsyncGitHubProfileManager gitManager;
     @NotNull
@@ -44,6 +46,13 @@ public class ShowSubCommand implements SubCommand {
 
     @Override
     public @NotNull String apply(String[] strings, CommandSender sender) {
+        if (!databaseBridge.isLoaded(sender.getName())) {
+            databaseBridge.createSession(sender.getName(), (Runnable) null, () -> {
+                Optional<String> dbSession = databaseBridge.getSession(sender.getName());
+                dbSession.ifPresent(s -> gitManager.createSession(s, null));
+            });
+            return "messages.command.api.loading.loading";
+        }
         val githubUsername = databaseBridge.getSession(sender.getName());
 
         if (!githubUsername.isPresent())

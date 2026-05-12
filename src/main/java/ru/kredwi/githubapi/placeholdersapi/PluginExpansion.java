@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import ru.kredwi.githubapi.MessageSource;
 import ru.kredwi.githubapi.api.Profile;
 import ru.kredwi.githubapi.api.github.AsyncGitHubProfileManager;
-import ru.kredwi.githubapi.db.impl.AsyncMySQLDatabase;
+import ru.kredwi.githubapi.db.impl.CommonAsyncDatabase;
 
 import java.util.*;
 import java.util.function.Function;
@@ -56,13 +56,13 @@ public class PluginExpansion extends PlaceholderExpansion {
      */
     private final Map<String, Function<Profile, String>> placeholders = new HashMap<>();
     @Setter
-    private AsyncMySQLDatabase dbBridge;
+    private CommonAsyncDatabase dbBridge;
     @Setter
     private AsyncGitHubProfileManager gitHubAPI;
     @Setter
     private MessageSource messageSource;
 
-    public PluginExpansion(AsyncMySQLDatabase bridge, AsyncGitHubProfileManager api, MessageSource messageSource) {
+    public PluginExpansion(CommonAsyncDatabase bridge, AsyncGitHubProfileManager api, MessageSource messageSource) {
         this.dbBridge = bridge;
         this.gitHubAPI = api;
         this.messageSource = messageSource;

@@ -29,12 +29,12 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import ru.kredwi.githubapi.api.exception.db.DatabaseValueNotFoundException;
 import ru.kredwi.githubapi.api.github.AsyncGitHubProfileManager;
-import ru.kredwi.githubapi.db.impl.AsyncMySQLDatabase;
+import ru.kredwi.githubapi.db.impl.CommonAsyncDatabase;
 
 @AllArgsConstructor
 public class PlayerListener implements Listener {
 
-    private AsyncMySQLDatabase sessionDatabase;
+    private CommonAsyncDatabase sessionDatabase;
     private AsyncGitHubProfileManager gitManager;
 
     @EventHandler
