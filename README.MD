@@ -6,7 +6,7 @@ The plugin allows binding a GitHub account to a player and displaying informatio
 
 ## Requirements for operation
 
-1. **Java 8** or higher
+1. **Java 8+** or higher
 2. **Spigot** / **Paper** from version 1.12 up to the latest
 3. Installed **PlaceholdersAPI** plugin version **2.12.2** or newer
 
@@ -25,6 +25,11 @@ The plugin allows binding a GitHub account to a player and displaying informatio
 ### Dependencies
 
 - **PlaceholdersAPI** – mandatory plugin for displaying information. Without it, placeholders will not work.
+
+#### Internal Dependencies
+- HikariCP
+- SL4J
+- BStats
 
 ## Placeholders
 
@@ -76,7 +81,7 @@ The `config.yml` file is created automatically on first run. It contains:
 
 ## Database
 
-- Only 2 database is supported (MySQL and SQLite).
+- Only MySQL and SQLite are supported
 - Queries are executed asynchronously using a pool of 5 threads.
 - When unloading the plugin, the thread pool is properly shut down.
 
